@@ -9,6 +9,7 @@
     "build": "cd client && npm run build"
   },
   "dependencies": {
+    "@octokit/rest": "^22.0.1",
     "@vitejs/plugin-react": "^4.7.0",
     "better-sqlite3": "^9.4.3",
     "cors": "^2.8.5",
