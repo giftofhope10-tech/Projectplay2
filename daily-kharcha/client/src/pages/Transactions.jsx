@@ -96,85 +96,83 @@ function Transactions() {
       </div>
 
       <div className="card">
-        <div className="filter-bar">
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <div style={{ position: 'relative' }}>
-              <Search size={16} style={{ 
-                position: 'absolute', 
-                left: '12px', 
-                top: '50%', 
-                transform: 'translateY(-50%)',
-                color: 'var(--text-muted)'
-              }} />
+        <div className="filter-section">
+          <div className="filter-bar">
+            <div className="search-input-wrapper">
+              <Search size={16} className="search-icon" />
               <input
                 type="text"
-                className="form-control"
-                placeholder="Search..."
+                className="form-control search-input"
+                placeholder="Search transactions..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ paddingLeft: '40px', maxWidth: '180px' }}
               />
+            </div>
+
+            <div className="filter-row">
+              <select
+                className="form-control"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+              >
+                <option value="all">All Types</option>
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
+              </select>
+
+              <select
+                className="form-control"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="all">All Categories</option>
+                <optgroup label="Income">
+                  {incomeCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Expense">
+                  {expenseCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
+                  ))}
+                </optgroup>
+              </select>
             </div>
           </div>
 
-          <select
-            className="form-control"
-            value={typeFilter}
-            onChange={(e) => setTypeFilter(e.target.value)}
-            style={{ maxWidth: '120px' }}
-          >
-            <option value="all">All Types</option>
-            <option value="income">Income</option>
-            <option value="expense">Expense</option>
-          </select>
+          <div className="filter-bar date-filter-bar">
+            <div className="date-range">
+              <input
+                type="date"
+                className="form-control date-input"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                placeholder="Start date"
+              />
+              <span className="date-separator">to</span>
+              <input
+                type="date"
+                className="form-control date-input"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                placeholder="End date"
+              />
+            </div>
+            
+            <div className="quick-filters">
+              <button className="btn btn-secondary btn-sm" onClick={() => setQuickDateFilter(7)}>7 Days</button>
+              <button className="btn btn-secondary btn-sm" onClick={() => setQuickDateFilter(30)}>30 Days</button>
+              <button className="btn btn-secondary btn-sm" onClick={setThisMonthFilter}>This Month</button>
+              {(startDate || endDate) && (
+                <button className="btn btn-danger btn-sm" onClick={clearDateFilter}>Clear</button>
+              )}
+            </div>
 
-          <select
-            className="form-control"
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{ maxWidth: '150px' }}
-          >
-            <option value="all">All Categories</option>
-            <optgroup label="Income">
-              {incomeCategories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
-              ))}
-            </optgroup>
-            <optgroup label="Expense">
-              {expenseCategories.map(cat => (
-                <option key={cat.id} value={cat.id}>{cat.emoji} {cat.name}</option>
-              ))}
-            </optgroup>
-          </select>
-
-          <button className="btn btn-secondary btn-sm" onClick={handleExportCSV}>
-            <Download size={16} />
-            CSV
-          </button>
-        </div>
-
-        <div className="filter-bar" style={{ marginTop: '-0.5rem' }}>
-          <input
-            type="date"
-            className="form-control"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            style={{ maxWidth: '150px' }}
-          />
-          <span style={{ color: 'var(--text-muted)' }}>to</span>
-          <input
-            type="date"
-            className="form-control"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            style={{ maxWidth: '150px' }}
-          />
-          <button className="btn btn-secondary btn-sm" onClick={() => setQuickDateFilter(7)}>7 Days</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => setQuickDateFilter(30)}>30 Days</button>
-          <button className="btn btn-secondary btn-sm" onClick={setThisMonthFilter}>This Month</button>
-          {(startDate || endDate) && (
-            <button className="btn btn-secondary btn-sm" onClick={clearDateFilter}>Clear</button>
-          )}
+            <button className="btn btn-secondary btn-sm export-btn" onClick={handleExportCSV}>
+              <Download size={16} />
+              Export CSV
+            </button>
+          </div>
         </div>
 
         {(startDate || endDate || typeFilter !== 'all' || categoryFilter !== 'all') && (
