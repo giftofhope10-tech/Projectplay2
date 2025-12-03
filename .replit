@@ -3,7 +3,7 @@ run = "kotlinc -d main.jar main.kt && kotlin -classpath main.jar MainKt"
 entrypoint = "main.kt"
 
 hidden=["*.jar"]
-modules = ["nodejs-20", "web", "nix"]
+modules = ["nodejs-20", "nix"]
 
 [nix]
 channel = "stable-25_05"
@@ -55,6 +55,10 @@ externalPort = 3001
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[[ports]]
+localPort = 34487
+externalPort = 5000
 
 [[ports]]
 localPort = 35163
