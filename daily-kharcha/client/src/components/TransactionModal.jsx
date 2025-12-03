@@ -3,6 +3,9 @@ import { useExpense } from '../context/ExpenseContext'
 import { X, TrendingUp, TrendingDown } from 'lucide-react'
 import { format } from 'date-fns'
 
+const MAX_AMOUNT = 99999999.99
+const MAX_DESCRIPTION_LENGTH = 100
+
 function TransactionModal({ onClose, prefillAmount = null, editTransaction = null }) {
   const { incomeCategories, expenseCategories, addTransaction, updateTransaction } = useExpense()
   
@@ -12,6 +15,7 @@ function TransactionModal({ onClose, prefillAmount = null, editTransaction = nul
   const [description, setDescription] = useState(editTransaction?.description || '')
   const [date, setDate] = useState(editTransaction ? format(new Date(editTransaction.date), 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState({})
 
   const isEditing = !!editTransaction
 
@@ -24,9 +28,45 @@ function TransactionModal({ onClose, prefillAmount = null, editTransaction = nul
 
   const categories = type === 'income' ? incomeCategories : expenseCategories
 
+  const validateAmount = (value) => {
+    if (!value) return 'Amount is required'
+    const num = parseFloat(value)
+    if (isNaN(num) || num <= 0) return 'Enter a valid amount'
+    if (num > MAX_AMOUNT) return `Maximum amount is ₹${MAX_AMOUNT.toLocaleString('en-IN')}`
+    return ''
+  }
+
+  const handleAmountChange = (e) => {
+    let value = e.target.value
+    if (value.length > 12) return
+    const numValue = parseFloat(value)
+    if (value && (isNaN(numValue) || numValue > MAX_AMOUNT)) {
+      if (numValue > MAX_AMOUNT) {
+        setErrors(prev => ({ ...prev, amount: `Maximum amount is ₹${MAX_AMOUNT.toLocaleString('en-IN')}` }))
+        return
+      }
+    }
+    setAmount(value)
+    setErrors(prev => ({ ...prev, amount: '' }))
+  }
+
+  const handleDescriptionChange = (e) => {
+    const value = e.target.value
+    if (value.length <= MAX_DESCRIPTION_LENGTH) {
+      setDescription(value)
+      setErrors(prev => ({ ...prev, description: '' }))
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (!amount || !category) return
+    
+    const amountError = validateAmount(amount)
+    if (amountError) {
+      setErrors(prev => ({ ...prev, amount: amountError }))
+      return
+    }
+    if (!category) return
 
     setLoading(true)
     
@@ -34,7 +74,7 @@ function TransactionModal({ onClose, prefillAmount = null, editTransaction = nul
       type,
       amount: parseFloat(amount),
       category,
-      description: description.trim(),
+      description: description.trim().substring(0, MAX_DESCRIPTION_LENGTH),
       date: new Date(date).toISOString()
     }
 
@@ -93,15 +133,17 @@ function TransactionModal({ onClose, prefillAmount = null, editTransaction = nul
               <label>Amount</label>
               <input
                 type="number"
-                className="form-control"
-                placeholder="Enter amount"
+                className={`form-control ${errors.amount ? 'error' : ''}`}
+                placeholder="Enter amount (max ₹9,99,99,999)"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={handleAmountChange}
                 min="0"
+                max={MAX_AMOUNT}
                 step="0.01"
                 required
                 autoFocus
               />
+              {errors.amount && <span className="field-error">{errors.amount}</span>}
             </div>
 
             <div className="form-group">
@@ -121,13 +163,17 @@ function TransactionModal({ onClose, prefillAmount = null, editTransaction = nul
             </div>
 
             <div className="form-group">
-              <label>Description (Optional)</label>
+              <label>
+                Description (Optional)
+                <span className="char-counter">{description.length}/{MAX_DESCRIPTION_LENGTH}</span>
+              </label>
               <input
                 type="text"
                 className="form-control"
                 placeholder="What was this for?"
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={handleDescriptionChange}
+                maxLength={MAX_DESCRIPTION_LENGTH}
               />
             </div>
 

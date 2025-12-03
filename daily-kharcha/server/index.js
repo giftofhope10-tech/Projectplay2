@@ -16,6 +16,38 @@ app.use(express.json())
 
 const db = new Database('expense_tracker.db')
 
+const MAX_AMOUNT = 99999999.99
+const MAX_DESCRIPTION_LENGTH = 100
+const MAX_NAME_LENGTH = 50
+
+function validateTransaction(data) {
+  const errors = []
+  
+  if (!data.type || !['income', 'expense'].includes(data.type)) {
+    errors.push('Invalid transaction type')
+  }
+  
+  if (data.amount === undefined || data.amount === null) {
+    errors.push('Amount is required')
+  } else if (typeof data.amount !== 'number' || isNaN(data.amount)) {
+    errors.push('Amount must be a valid number')
+  } else if (data.amount <= 0) {
+    errors.push('Amount must be greater than 0')
+  } else if (data.amount > MAX_AMOUNT) {
+    errors.push(`Amount cannot exceed ${MAX_AMOUNT}`)
+  }
+  
+  if (!data.category) {
+    errors.push('Category is required')
+  }
+  
+  if (data.description && data.description.length > MAX_DESCRIPTION_LENGTH) {
+    errors.push(`Description cannot exceed ${MAX_DESCRIPTION_LENGTH} characters`)
+  }
+  
+  return errors
+}
+
 db.exec(`
   CREATE TABLE IF NOT EXISTS transactions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -87,10 +119,17 @@ app.post('/api/transactions', (req, res) => {
   try {
     const { type, amount, category, description, date } = req.body
     
+    const validationErrors = validateTransaction({ type, amount, category, description })
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ errors: validationErrors })
+    }
+    
+    const sanitizedDescription = description ? description.substring(0, MAX_DESCRIPTION_LENGTH).trim() : ''
+    
     const stmt = db.prepare(
       'INSERT INTO transactions (type, amount, category, description, date) VALUES (?, ?, ?, ?, ?)'
     )
-    const result = stmt.run(type, amount, category, description || '', date)
+    const result = stmt.run(type, amount, category, sanitizedDescription, date)
     
     const newTransaction = db.prepare('SELECT * FROM transactions WHERE id = ?').get(result.lastInsertRowid)
     res.status(201).json(newTransaction)
@@ -197,10 +236,17 @@ app.post('/api/recurring', (req, res) => {
   try {
     const { type, amount, category, description, frequency, nextDate } = req.body
     
+    const validationErrors = validateTransaction({ type, amount, category, description })
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ errors: validationErrors })
+    }
+    
+    const sanitizedDescription = description ? description.substring(0, MAX_DESCRIPTION_LENGTH).trim() : ''
+    
     const stmt = db.prepare(
       'INSERT INTO recurring_transactions (type, amount, category, description, frequency, nextDate) VALUES (?, ?, ?, ?, ?, ?)'
     )
-    const result = stmt.run(type, amount, category, description || '', frequency, nextDate)
+    const result = stmt.run(type, amount, category, sanitizedDescription, frequency, nextDate)
     
     const newRecurring = db.prepare('SELECT * FROM recurring_transactions WHERE id = ?').get(result.lastInsertRowid)
     res.status(201).json(newRecurring)
@@ -305,9 +351,16 @@ app.put('/api/transactions/:id', (req, res) => {
     const { id } = req.params
     const { type, amount, category, description, date } = req.body
     
+    const validationErrors = validateTransaction({ type, amount, category, description })
+    if (validationErrors.length > 0) {
+      return res.status(400).json({ errors: validationErrors })
+    }
+    
+    const sanitizedDescription = description ? description.substring(0, MAX_DESCRIPTION_LENGTH).trim() : ''
+    
     db.prepare(
       'UPDATE transactions SET type = ?, amount = ?, category = ?, description = ?, date = ? WHERE id = ?'
-    ).run(type, amount, category, description || '', date, id)
+    ).run(type, amount, category, sanitizedDescription, date, id)
     
     const updated = db.prepare('SELECT * FROM transactions WHERE id = ?').get(id)
     res.json(updated)
