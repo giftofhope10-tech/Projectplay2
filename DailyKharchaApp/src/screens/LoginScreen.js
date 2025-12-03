@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   ActivityIndicator
 } from 'react-native';
-import { Wallet, Cloud, Shield, ChevronRight } from 'lucide-react-native';
+import { Wallet, Cloud, Shield, ChevronRight, Chrome } from 'lucide-react-native';
 
 export default function LoginScreen({ onSkip, onGoogleSignIn, loading }) {
   return (
@@ -16,7 +15,7 @@ export default function LoginScreen({ onSkip, onGoogleSignIn, loading }) {
         <View style={styles.logoContainer}>
           <Wallet size={56} color="#7c3aed" />
         </View>
-        <Text style={styles.title}>Daily Kharcha</Text>
+        <Text style={styles.title}>Expenses Controller</Text>
         <Text style={styles.subtitle}>Your Personal Expense Tracker</Text>
       </View>
 
@@ -52,11 +51,10 @@ export default function LoginScreen({ onSkip, onGoogleSignIn, loading }) {
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Image 
-                source={{ uri: 'https://www.google.com/favicon.ico' }}
-                style={styles.googleIcon}
-              />
-              <Text style={styles.googleBtnText}>Continue with Google</Text>
+              <View style={styles.googleIconContainer}>
+                <Text style={styles.googleG}>G</Text>
+              </View>
+              <Text style={styles.googleBtnText}>Sign in with Google</Text>
             </>
           )}
         </TouchableOpacity>
@@ -67,8 +65,8 @@ export default function LoginScreen({ onSkip, onGoogleSignIn, loading }) {
         </TouchableOpacity>
 
         <Text style={styles.disclaimer}>
-          Data will only be stored locally on your device.
-          Sign in to enable cloud backup.
+          Without sign in, data will only be stored locally.
+          Sign in to enable cloud backup & sync.
         </Text>
       </View>
     </View>
@@ -95,7 +93,7 @@ const styles = StyleSheet.create({
     marginBottom: 20
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 8
@@ -146,20 +144,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#7c3aed',
+    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 12,
     marginBottom: 16
   },
-  googleIcon: {
+  googleIconContainer: {
     width: 24,
     height: 24,
     marginRight: 12,
-    borderRadius: 4,
-    backgroundColor: '#fff'
+    alignItems: 'center',
+    justifyContent: 'center'
+  },
+  googleG: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#4285F4'
   },
   googleBtnText: {
-    color: '#fff',
+    color: '#333',
     fontSize: 18,
     fontWeight: '600'
   },
