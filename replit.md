@@ -6,6 +6,15 @@ Daily Kharcha is a personal finance management application that helps users trac
 
 ## Recent Changes
 
+**December 2025 - Voice Input Feature:**
+- Added voice input for adding expenses/income hands-free
+- Uses Web Speech API (browser native, no external API needed)
+- Supports commands like "Add 200 rupees Food" or "Salary 5000"
+- Parses amount, category, and transaction type from voice
+- Includes category aliases for common Hindi/English terms
+- Shows confirmation before saving with visual feedback
+- Graceful fallback for unsupported browsers
+
 **December 2025 - Professional UI Redesign:**
 - Complete visual overhaul with modern dark theme
 - Organized sidebar navigation with sections: Main Menu, Financial Tools, Utilities
