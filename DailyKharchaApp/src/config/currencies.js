@@ -1,0 +1,32 @@
+export const currencies = [
+  { code: 'INR', symbol: '₹', name: 'Indian Rupee' },
+  { code: 'USD', symbol: '$', name: 'US Dollar' },
+  { code: 'EUR', symbol: '€', name: 'Euro' },
+  { code: 'GBP', symbol: '£', name: 'British Pound' },
+  { code: 'JPY', symbol: '¥', name: 'Japanese Yen' },
+  { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
+  { code: 'CHF', symbol: 'Fr', name: 'Swiss Franc' },
+  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
+  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham' },
+  { code: 'SAR', symbol: '﷼', name: 'Saudi Riyal' },
+  { code: 'PKR', symbol: '₨', name: 'Pakistani Rupee' },
+  { code: 'BDT', symbol: '৳', name: 'Bangladeshi Taka' },
+  { code: 'NPR', symbol: 'रू', name: 'Nepalese Rupee' },
+  { code: 'LKR', symbol: 'Rs', name: 'Sri Lankan Rupee' },
+];
+
+export const categories = [
+  { id: 'food', name: 'Food & Dining', icon: 'utensils', color: '#ef4444' },
+  { id: 'transport', name: 'Transport', icon: 'car', color: '#f97316' },
+  { id: 'shopping', name: 'Shopping', icon: 'shopping-bag', color: '#eab308' },
+  { id: 'bills', name: 'Bills & Utilities', icon: 'receipt', color: '#22c55e' },
+  { id: 'entertainment', name: 'Entertainment', icon: 'film', color: '#3b82f6' },
+  { id: 'health', name: 'Health', icon: 'heart-pulse', color: '#ec4899' },
+  { id: 'education', name: 'Education', icon: 'graduation-cap', color: '#8b5cf6' },
+  { id: 'rent', name: 'Rent', icon: 'home', color: '#6366f1' },
+  { id: 'salary', name: 'Salary', icon: 'wallet', color: '#10b981' },
+  { id: 'investment', name: 'Investment', icon: 'trending-up', color: '#06b6d4' },
+  { id: 'other', name: 'Other', icon: 'ellipsis', color: '#6b7280' },
+];

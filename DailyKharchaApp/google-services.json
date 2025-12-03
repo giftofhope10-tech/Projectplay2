@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "507541610012",
+    "project_id": "expenses-controller-558c4",
+    "storage_bucket": "expenses-controller-558c4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:507541610012:android:e443ed40a113f7713389d9",
+        "android_client_info": {
+          "package_name": "com.iftechstudio.Expense_Controller"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBkxplSWjlK16t6apO2RyMi3NZAztW6NLA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
