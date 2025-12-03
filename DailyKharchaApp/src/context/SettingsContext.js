@@ -120,7 +120,7 @@ export function SettingsProvider({ children }) {
   const unlockWithBiometric = async () => {
     try {
       const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Unlock Daily Kharcha',
+        promptMessage: 'Unlock Expenses Controller',
         fallbackLabel: 'Use PIN',
         cancelLabel: 'Cancel',
         disableDeviceFallback: false

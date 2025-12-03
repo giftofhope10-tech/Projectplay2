@@ -427,7 +427,7 @@ export default function SettingsScreen({ navigation }) {
 
       <View style={styles.aboutSection}>
         <Info size={20} color="#9ca3af" />
-        <Text style={styles.aboutText}>Daily Kharcha v1.0.0</Text>
+        <Text style={styles.aboutText}>Expenses Controller v1.0.0</Text>
         <Text style={styles.aboutSubtext}>Your personal expense tracker</Text>
       </View>
     </ScrollView>

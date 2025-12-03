@@ -9,14 +9,14 @@ export default function TermsOfServiceScreen() {
 
         <Text style={styles.sectionTitle}>1. Acceptance of Terms</Text>
         <Text style={styles.paragraph}>
-          By downloading, installing, or using Daily Kharcha ("the App"), you agree to be 
+          By downloading, installing, or using Expenses Controller ("the App"), you agree to be 
           bound by these Terms of Service. If you do not agree to these terms, please do 
           not use the App.
         </Text>
 
         <Text style={styles.sectionTitle}>2. Description of Service</Text>
         <Text style={styles.paragraph}>
-          Daily Kharcha is a personal finance management application that allows users to:
+          Expenses Controller is a personal finance management application that allows users to:
           {'\n'}- Track income and expenses
           {'\n'}- Set and monitor budgets
           {'\n'}- Create savings goals

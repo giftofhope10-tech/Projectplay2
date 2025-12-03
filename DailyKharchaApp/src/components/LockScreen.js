@@ -100,7 +100,7 @@ export default function LockScreen() {
         <View style={styles.lockIcon}>
           <Lock size={48} color="#7c3aed" />
         </View>
-        <Text style={styles.title}>Daily Kharcha</Text>
+        <Text style={styles.title}>Expenses Controller</Text>
         <Text style={styles.subtitle}>Enter your PIN to unlock</Text>
       </View>
 

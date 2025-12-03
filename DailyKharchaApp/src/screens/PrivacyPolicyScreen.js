@@ -9,7 +9,7 @@ export default function PrivacyPolicyScreen() {
 
         <Text style={styles.sectionTitle}>1. Introduction</Text>
         <Text style={styles.paragraph}>
-          Welcome to Daily Kharcha ("we," "our," or "us"). We are committed to protecting your 
+          Welcome to Expenses Controller ("we," "our," or "us"). We are committed to protecting your 
           personal information and your right to privacy. This Privacy Policy explains how we 
           collect, use, disclose, and safeguard your information when you use our mobile application.
         </Text>
