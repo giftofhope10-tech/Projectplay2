@@ -4,13 +4,12 @@ import Database from 'better-sqlite3'
 import PDFDocument from 'pdfkit'
 import { fileURLToPath } from 'url'
 import { dirname, join } from 'path'
-import { createServer as createViteServer } from 'vite'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const app = express()
-const PORT = 5000
+const PORT = 3001
 
 app.use(cors())
 app.use(express.json())
@@ -778,22 +777,6 @@ app.post('/api/export/pdf', (req, res) => {
   }
 })
 
-async function startServer() {
-  const vite = await createViteServer({
-    root: join(__dirname, '../client'),
-    server: { 
-      middlewareMode: true,
-      allowedHosts: 'all',
-      hmr: false
-    },
-    appType: 'spa'
-  })
-
-  app.use(vite.middlewares)
-
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`)
-  })
-}
-
-startServer().catch(console.error)
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`API Server running on http://0.0.0.0:${PORT}`)
+})
