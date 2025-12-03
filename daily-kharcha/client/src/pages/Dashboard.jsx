@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useExpense } from '../context/ExpenseContext'
 import TransactionModal from '../components/TransactionModal'
+import VoiceInput from '../components/VoiceInput'
 import { TrendingUp, TrendingDown, Wallet, Plus, Trash2, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react'
 import { format, startOfMonth, endOfMonth } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
@@ -91,10 +92,13 @@ function Dashboard() {
           <h2>Dashboard</h2>
           <p>Welcome back! Here's your financial overview</p>
         </div>
-        <button className="btn btn-primary btn-lg" onClick={() => setShowModal(true)}>
-          <Plus size={20} />
-          Add Transaction
-        </button>
+        <div className="header-buttons">
+          <VoiceInput />
+          <button className="btn btn-primary btn-lg" onClick={() => setShowModal(true)}>
+            <Plus size={20} />
+            Add Transaction
+          </button>
+        </div>
       </div>
 
       <div className="stats-grid">
