@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, NavLink, useNavigate, useLocation } from 'react-router-dom'
 import { ExpenseProvider } from './context/ExpenseContext'
+import { SettingsProvider, useSettings } from './context/SettingsContext'
+import LockScreen from './components/LockScreen'
 import Dashboard from './pages/Dashboard'
 import Transactions from './pages/Transactions'
 import Reports from './pages/Reports'
@@ -79,6 +81,11 @@ function MobileMenu({ isOpen, onClose }) {
 function AppContent() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const location = useLocation()
+  const { isLocked } = useSettings()
+
+  if (isLocked) {
+    return <LockScreen />
+  }
   
   const getPageTitle = () => {
     const path = location.pathname
@@ -240,11 +247,13 @@ function AppContent() {
 
 function App() {
   return (
-    <ExpenseProvider>
-      <Router>
-        <AppContent />
-      </Router>
-    </ExpenseProvider>
+    <SettingsProvider>
+      <ExpenseProvider>
+        <Router>
+          <AppContent />
+        </Router>
+      </ExpenseProvider>
+    </SettingsProvider>
   )
 }
 
