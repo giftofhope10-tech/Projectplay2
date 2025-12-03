@@ -8,8 +8,10 @@ export default defineConfig({
     host: '0.0.0.0',
     port: 5000,
     strictPort: true,
-    allowedHosts: ['.replit.dev', '.repl.co'],
-    hmr: false,
+    allowedHosts: true,
+    hmr: {
+      clientPort: 443
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:3001',
