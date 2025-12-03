@@ -4,11 +4,19 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  Vibration,
+  Platform,
   Animated
 } from 'react-native';
 import { Fingerprint, Delete, Eye, EyeOff, Lock } from 'lucide-react-native';
+
 import { useSettings } from '../context/SettingsContext';
+
+const vibrate = (duration) => {
+  if (Platform.OS !== 'web') {
+    const { Vibration } = require('react-native');
+    Vibration.vibrate(duration);
+  }
+};
 
 export default function LockScreen() {
   const { unlock, unlockWithBiometric, settings, biometricAvailable } = useSettings();
@@ -58,7 +66,7 @@ export default function LockScreen() {
   const handleUnlock = async (inputPin) => {
     const success = await unlock(inputPin || pin);
     if (!success) {
-      Vibration.vibrate(200);
+      vibrate(200);
       shake();
       setAttempts(prev => prev + 1);
       setError(attempts >= 4 ? 'Too many failed attempts' : 'Incorrect PIN');

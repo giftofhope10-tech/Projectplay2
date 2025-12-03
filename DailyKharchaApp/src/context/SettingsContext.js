@@ -1,8 +1,15 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import * as LocalAuthentication from 'expo-local-authentication';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { currencies } from '../config/currencies';
+
+let SecureStore = null;
+let LocalAuthentication = null;
+
+if (Platform.OS !== 'web') {
+  SecureStore = require('expo-secure-store');
+  LocalAuthentication = require('expo-local-authentication');
+}
 
 const SettingsContext = createContext();
 
@@ -37,6 +44,10 @@ export function SettingsProvider({ children }) {
   }, []);
 
   const checkBiometricAvailability = async () => {
+    if (Platform.OS === 'web' || !LocalAuthentication) {
+      setBiometricAvailable(false);
+      return;
+    }
     try {
       const compatible = await LocalAuthentication.hasHardwareAsync();
       const enrolled = await LocalAuthentication.isEnrolledAsync();
@@ -52,10 +63,24 @@ export function SettingsProvider({ children }) {
       const savedSettings = await AsyncStorage.getItem('appSettings');
       if (savedSettings) {
         const parsed = JSON.parse(savedSettings);
+        
+        if (Platform.OS === 'web') {
+          const storedPin = await AsyncStorage.getItem('userPin');
+          if (parsed.pinEnabled && !storedPin) {
+            parsed.pinEnabled = false;
+            parsed.biometricEnabled = false;
+          }
+        }
+        
         setSettings({ ...defaultSettings, ...parsed });
         
-        if (parsed.pinEnabled) {
+        if (parsed.pinEnabled && Platform.OS !== 'web') {
           setIsLocked(true);
+        } else if (parsed.pinEnabled && Platform.OS === 'web') {
+          const storedPin = await AsyncStorage.getItem('userPin');
+          if (storedPin) {
+            setIsLocked(true);
+          }
         }
       }
     } catch (error) {
@@ -76,7 +101,11 @@ export function SettingsProvider({ children }) {
 
   const setPin = async (pin) => {
     try {
-      await SecureStore.setItemAsync('userPin', pin);
+      if (Platform.OS === 'web') {
+        await AsyncStorage.setItem('userPin', pin);
+      } else if (SecureStore) {
+        await SecureStore.setItemAsync('userPin', pin);
+      }
       const newSettings = { ...settings, pinEnabled: true };
       await saveSettings(newSettings);
       return true;
@@ -88,7 +117,11 @@ export function SettingsProvider({ children }) {
 
   const removePin = async () => {
     try {
-      await SecureStore.deleteItemAsync('userPin');
+      if (Platform.OS === 'web') {
+        await AsyncStorage.removeItem('userPin');
+      } else if (SecureStore) {
+        await SecureStore.deleteItemAsync('userPin');
+      }
       const newSettings = { ...settings, pinEnabled: false, biometricEnabled: false };
       await saveSettings(newSettings);
       return true;
@@ -100,7 +133,12 @@ export function SettingsProvider({ children }) {
 
   const verifyPin = async (inputPin) => {
     try {
-      const savedPin = await SecureStore.getItemAsync('userPin');
+      let savedPin;
+      if (Platform.OS === 'web') {
+        savedPin = await AsyncStorage.getItem('userPin');
+      } else if (SecureStore) {
+        savedPin = await SecureStore.getItemAsync('userPin');
+      }
       return savedPin === inputPin;
     } catch (error) {
       console.error('Error verifying PIN:', error);
@@ -118,6 +156,9 @@ export function SettingsProvider({ children }) {
   };
 
   const unlockWithBiometric = async () => {
+    if (Platform.OS === 'web' || !LocalAuthentication) {
+      return false;
+    }
     try {
       const result = await LocalAuthentication.authenticateAsync({
         promptMessage: 'Unlock Expenses Controller',
