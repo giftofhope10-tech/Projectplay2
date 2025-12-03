@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useExpense } from '../context/ExpenseContext'
 import TransactionModal from '../components/TransactionModal'
-import { TrendingUp, TrendingDown, Wallet, Plus, Trash2, ArrowUpRight, ArrowDownRight } from 'lucide-react'
-import { format, startOfMonth, endOfMonth, subMonths } from 'date-fns'
+import { TrendingUp, TrendingDown, Wallet, Plus, Trash2, ArrowUpRight, ArrowDownRight, ChevronRight } from 'lucide-react'
+import { format, startOfMonth, endOfMonth } from 'date-fns'
+import { useNavigate } from 'react-router-dom'
 
 function Dashboard() {
   const { 
@@ -16,6 +17,7 @@ function Dashboard() {
     loading 
   } = useExpense()
   
+  const navigate = useNavigate()
   const [showModal, setShowModal] = useState(false)
   const [monthlyStats, setMonthlyStats] = useState(null)
 
@@ -48,7 +50,7 @@ function Dashboard() {
     return categories.find(c => c.id === categoryId) || { name: categoryId, emoji: '📌' }
   }
 
-  const recentTransactions = transactions.slice(0, 5)
+  const recentTransactions = transactions.slice(0, 6)
 
   const thisMonthExpense = useMemo(() => {
     const now = new Date()
@@ -77,7 +79,7 @@ function Dashboard() {
   if (loading) {
     return (
       <div className="empty-state">
-        <p>Loading...</p>
+        <p>Loading your financial data...</p>
       </div>
     )
   }
@@ -89,42 +91,42 @@ function Dashboard() {
           <h2>Dashboard</h2>
           <p>Welcome back! Here's your financial overview</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-          <Plus size={18} />
+        <button className="btn btn-primary btn-lg" onClick={() => setShowModal(true)}>
+          <Plus size={20} />
           Add Transaction
         </button>
       </div>
 
       <div className="stats-grid">
-        <div className="stat-card">
+        <div className="stat-card income">
           <div className="stat-icon income">
-            <TrendingUp size={24} />
+            <TrendingUp size={26} />
           </div>
           <div className="stat-info">
-            <h3>{formatCurrency(totalIncome)}</h3>
-            <p>Total Income</p>
+            <p className="stat-label">Total Income</p>
+            <h3 style={{ color: 'var(--success)' }}>{formatCurrency(totalIncome)}</h3>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card expense">
           <div className="stat-icon expense">
-            <TrendingDown size={24} />
+            <TrendingDown size={26} />
           </div>
           <div className="stat-info">
-            <h3>{formatCurrency(totalExpense)}</h3>
-            <p>Total Expenses</p>
+            <p className="stat-label">Total Expenses</p>
+            <h3 style={{ color: 'var(--danger)' }}>{formatCurrency(totalExpense)}</h3>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card balance">
           <div className="stat-icon balance">
-            <Wallet size={24} />
+            <Wallet size={26} />
           </div>
           <div className="stat-info">
+            <p className="stat-label">Current Balance</p>
             <h3 style={{ color: balance >= 0 ? 'var(--success)' : 'var(--danger)' }}>
               {formatCurrency(balance)}
             </h3>
-            <p>Current Balance</p>
           </div>
         </div>
       </div>
@@ -151,34 +153,44 @@ function Dashboard() {
         </div>
 
         <div className="insight-card">
-          <h4>Top Spending Categories</h4>
+          <h4>Top Categories</h4>
           <div className="top-category-list">
-            {monthlyStats?.topCategories?.slice(0, 3).map((cat, index) => {
+            {monthlyStats?.topCategories?.slice(0, 3).map((cat) => {
               const category = getCategory(cat.category, 'expense')
               return (
                 <div key={cat.category} className="top-category-item">
                   <span>{category.emoji} {category.name}</span>
-                  <span style={{ fontWeight: 600 }}>{formatCurrency(cat.total)}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(cat.total)}</span>
                 </div>
               )
             })}
             {(!monthlyStats?.topCategories || monthlyStats.topCategories.length === 0) && (
-              <p className="text-muted">No expenses this month</p>
+              <p className="text-muted" style={{ padding: '8px 0' }}>No expenses this month</p>
             )}
           </div>
         </div>
       </div>
 
-      <div className="card" style={{ marginTop: '1.5rem' }}>
+      <div className="card">
         <div className="card-header">
           <h3 className="card-title">Recent Transactions</h3>
+          {transactions.length > 0 && (
+            <button className="btn btn-secondary btn-sm" onClick={() => navigate('/transactions')}>
+              View All
+              <ChevronRight size={16} />
+            </button>
+          )}
         </div>
         
         {recentTransactions.length === 0 ? (
           <div className="empty-state">
-            <Wallet size={48} />
+            <Wallet size={56} strokeWidth={1.5} />
             <h3>No transactions yet</h3>
-            <p>Add your first transaction to get started</p>
+            <p>Start tracking your finances by adding your first transaction</p>
+            <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ marginTop: '16px' }}>
+              <Plus size={18} />
+              Add Transaction
+            </button>
           </div>
         ) : (
           <div className="transaction-list">
@@ -191,8 +203,8 @@ function Dashboard() {
                       className="transaction-icon" 
                       style={{ 
                         background: transaction.type === 'income' 
-                          ? 'rgba(16, 185, 129, 0.15)' 
-                          : 'rgba(239, 68, 68, 0.15)' 
+                          ? 'var(--success-light)' 
+                          : 'var(--danger-light)' 
                       }}
                     >
                       {category.emoji}
@@ -207,11 +219,11 @@ function Dashboard() {
                       {transaction.type === 'income' ? '+' : '-'}{formatCurrency(transaction.amount)}
                     </span>
                     <button 
-                      className="icon-btn" 
+                      className="icon-btn danger" 
                       onClick={() => deleteTransaction(transaction.id)}
                       title="Delete"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>

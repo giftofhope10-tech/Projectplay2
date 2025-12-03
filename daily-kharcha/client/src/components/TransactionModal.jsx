@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useExpense } from '../context/ExpenseContext'
-import { X } from 'lucide-react'
+import { X, TrendingUp, TrendingDown } from 'lucide-react'
 import { format } from 'date-fns'
 
 function TransactionModal({ onClose, prefillAmount = null, editTransaction = null }) {
@@ -52,106 +52,110 @@ function TransactionModal({ onClose, prefillAmount = null, editTransaction = nul
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>{isEditing ? 'Edit Transaction' : 'Add Transaction'}</h3>
+          <h3>{isEditing ? 'Edit Transaction' : 'New Transaction'}</h3>
           <button className="modal-close" onClick={onClose}>
             <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="type-toggle">
-            <button
-              type="button"
-              className={`type-btn ${type === 'income' ? 'active income' : ''}`}
-              onClick={() => {
-                setType('income')
-                if (!isEditing || editTransaction.type !== 'income') {
-                  setCategory('')
-                }
-              }}
-            >
-              Income
-            </button>
-            <button
-              type="button"
-              className={`type-btn ${type === 'expense' ? 'active expense' : ''}`}
-              onClick={() => {
-                setType('expense')
-                if (!isEditing || editTransaction.type !== 'expense') {
-                  setCategory('')
-                }
-              }}
-            >
-              Expense
-            </button>
-          </div>
-
-          <div className="form-group">
-            <label>Amount</label>
-            <input
-              type="number"
-              className="form-control"
-              placeholder="Enter amount"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              min="0"
-              step="0.01"
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Category</label>
-            <div className="category-grid">
-              {categories.map(cat => (
-                <div
-                  key={cat.id}
-                  className={`category-item ${category === cat.id ? 'selected' : ''}`}
-                  onClick={() => setCategory(cat.id)}
-                >
-                  <span>{cat.emoji}</span>
-                  <p>{cat.name}</p>
-                </div>
-              ))}
+        <div className="modal-body">
+          <form onSubmit={handleSubmit}>
+            <div className="type-toggle">
+              <button
+                type="button"
+                className={`type-btn ${type === 'income' ? 'active income' : ''}`}
+                onClick={() => {
+                  setType('income')
+                  if (!isEditing || editTransaction.type !== 'income') {
+                    setCategory('')
+                  }
+                }}
+              >
+                <TrendingUp size={18} />
+                Income
+              </button>
+              <button
+                type="button"
+                className={`type-btn ${type === 'expense' ? 'active expense' : ''}`}
+                onClick={() => {
+                  setType('expense')
+                  if (!isEditing || editTransaction.type !== 'expense') {
+                    setCategory('')
+                  }
+                }}
+              >
+                <TrendingDown size={18} />
+                Expense
+              </button>
             </div>
-          </div>
 
-          <div className="form-group">
-            <label>Description (Optional)</label>
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Enter description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
+            <div className="form-group">
+              <label>Amount</label>
+              <input
+                type="number"
+                className="form-control"
+                placeholder="Enter amount"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="0"
+                step="0.01"
+                required
+                autoFocus
+              />
+            </div>
 
-          <div className="form-group">
-            <label>Date</label>
-            <input
-              type="date"
-              className="form-control"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              required
-            />
-          </div>
+            <div className="form-group">
+              <label>Category</label>
+              <div className="category-grid">
+                {categories.map(cat => (
+                  <div
+                    key={cat.id}
+                    className={`category-item ${category === cat.id ? 'selected' : ''}`}
+                    onClick={() => setCategory(cat.id)}
+                  >
+                    <span>{cat.emoji}</span>
+                    <p>{cat.name}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
 
-          <div className="flex gap-1">
-            <button 
-              type="submit" 
-              className={`btn ${type === 'income' ? 'btn-success' : 'btn-danger'}`}
-              disabled={loading || !amount || !category}
-              style={{ flex: 1 }}
-            >
-              {loading ? (isEditing ? 'Saving...' : 'Adding...') : (isEditing ? 'Save Changes' : `Add ${type === 'income' ? 'Income' : 'Expense'}`)}
-            </button>
-            <button type="button" className="btn btn-secondary" onClick={onClose}>
-              Cancel
-            </button>
-          </div>
-        </form>
+            <div className="form-group">
+              <label>Description (Optional)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="What was this for?"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Date</label>
+              <input
+                type="date"
+                className="form-control"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="modal-footer" style={{ padding: 0, border: 'none', marginTop: '8px' }}>
+              <button type="button" className="btn btn-secondary" onClick={onClose}>
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className={`btn ${type === 'income' ? 'btn-success' : 'btn-danger'}`}
+                disabled={loading || !amount || !category}
+              >
+                {loading ? (isEditing ? 'Saving...' : 'Adding...') : (isEditing ? 'Save Changes' : `Add ${type === 'income' ? 'Income' : 'Expense'}`)}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
