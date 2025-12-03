@@ -783,7 +783,7 @@ async function startServer() {
     root: join(__dirname, '../client'),
     server: { 
       middlewareMode: true,
-      allowedHosts: true,
+      allowedHosts: 'all',
       hmr: false
     },
     appType: 'spa'
