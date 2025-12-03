@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "Daily Kharcha",
-    "slug": "DailyKharchaApp",
+    "name": "Expenses_Controller",
+    "slug": "ExpensesController",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -14,16 +14,17 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.iftechstudio.ExpenseController"
+      "bundleIdentifier": "com.iftechstudio.ExpensesController"
     },
     "android": {
-      "package": "com.iftechstudio.Expense_Controller",
+      "package": "com.iftechstudio.Expenses_Controller",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#1a1a2e"
       },
       "edgeToEdgeEnabled": true,
+      "targetSdkVersion": 35,
       "permissions": [
         "USE_BIOMETRIC",
         "USE_FINGERPRINT",
