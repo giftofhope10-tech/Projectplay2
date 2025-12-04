@@ -19,21 +19,36 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
+  const [firebaseAvailable, setFirebaseAvailable] = useState(false);
 
   useEffect(() => {
+    if (!auth) {
+      console.log('Firebase auth not available, running in offline mode');
+      setLoading(false);
+      setFirebaseAvailable(false);
+      return;
+    }
+
+    setFirebaseAvailable(true);
+    
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-        const userData = userDoc.exists() ? userDoc.data() : {};
-        
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          displayName: firebaseUser.displayName,
-          photoURL: firebaseUser.photoURL,
-          ...userData
-        });
-      } else {
+      try {
+        if (firebaseUser && db) {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userData = userDoc.exists() ? userDoc.data() : {};
+          
+          setUser({
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            displayName: firebaseUser.displayName,
+            photoURL: firebaseUser.photoURL,
+            ...userData
+          });
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Auth state change error:', error);
         setUser(null);
       }
       setLoading(false);
@@ -43,6 +58,10 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signInWithGoogle = async (idToken) => {
+    if (!auth || !db) {
+      return { success: false, error: 'Firebase not available' };
+    }
+    
     try {
       const credential = GoogleAuthProvider.credential(idToken);
       const result = await signInWithCredential(auth, credential);
@@ -64,8 +83,11 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try {
-      await firebaseSignOut(auth);
+      if (auth) {
+        await firebaseSignOut(auth);
+      }
       await AsyncStorage.removeItem('userSettings');
+      setUser(null);
       return { success: true };
     } catch (error) {
       return { success: false, error: error.message };
@@ -77,6 +99,7 @@ export function AuthProvider({ children }) {
     loading,
     isOnline,
     setIsOnline,
+    firebaseAvailable,
     signInWithGoogle,
     signOut
   };

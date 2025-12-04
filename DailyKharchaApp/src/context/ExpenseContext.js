@@ -8,7 +8,6 @@ import {
   getDocs, 
   deleteDoc, 
   query, 
-  where,
   orderBy,
   serverTimestamp,
   writeBatch
@@ -24,7 +23,7 @@ export function useExpense() {
 }
 
 export function ExpenseProvider({ children }) {
-  const { user, isOnline } = useAuth();
+  const { user, isOnline, firebaseAvailable } = useAuth();
   const { settings, updateLastSync } = useSettings();
   
   const [transactions, setTransactions] = useState([]);
@@ -40,20 +39,20 @@ export function ExpenseProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    if (user && isOnline && settings.syncEnabled) {
+    if (user && isOnline && settings.syncEnabled && firebaseAvailable && db) {
       syncWithCloud();
     }
-  }, [user, isOnline, settings.syncEnabled]);
+  }, [user, isOnline, settings.syncEnabled, firebaseAvailable]);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
-      if (state.isConnected && pendingSync.length > 0 && user) {
+      if (state.isConnected && pendingSync.length > 0 && user && firebaseAvailable && db) {
         syncPendingChanges();
       }
     });
 
     return () => unsubscribe();
-  }, [pendingSync, user]);
+  }, [pendingSync, user, firebaseAvailable]);
 
   const loadLocalData = async () => {
     try {
@@ -92,7 +91,7 @@ export function ExpenseProvider({ children }) {
   };
 
   const syncPendingChanges = async () => {
-    if (!user || pendingSync.length === 0) return;
+    if (!user || pendingSync.length === 0 || !db) return;
 
     setSyncing(true);
     try {
@@ -120,7 +119,7 @@ export function ExpenseProvider({ children }) {
   };
 
   const syncWithCloud = async () => {
-    if (!user) return;
+    if (!user || !db) return;
 
     setSyncing(true);
     try {
@@ -173,7 +172,7 @@ export function ExpenseProvider({ children }) {
     setTransactions(updated);
     await saveLocalData('transactions', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
+    if (user && isOnline && settings.syncEnabled && db) {
       try {
         await setDoc(doc(db, `users/${user.uid}/transactions`, id), {
           ...newTransaction,
@@ -182,7 +181,7 @@ export function ExpenseProvider({ children }) {
       } catch (error) {
         await addPendingSync({ type: 'add', collection: 'transactions', id, data: newTransaction });
       }
-    } else if (user) {
+    } else if (user && db) {
       await addPendingSync({ type: 'add', collection: 'transactions', id, data: newTransaction });
     }
 
@@ -196,13 +195,13 @@ export function ExpenseProvider({ children }) {
 
     const updatedTxn = updated.find(t => t.id === id);
     
-    if (user && isOnline && settings.syncEnabled) {
+    if (user && isOnline && settings.syncEnabled && db) {
       try {
         await setDoc(doc(db, `users/${user.uid}/transactions`, id), updatedTxn, { merge: true });
       } catch (error) {
         await addPendingSync({ type: 'update', collection: 'transactions', id, data: updatedTxn });
       }
-    } else if (user) {
+    } else if (user && db) {
       await addPendingSync({ type: 'update', collection: 'transactions', id, data: updatedTxn });
     }
   };
@@ -212,13 +211,13 @@ export function ExpenseProvider({ children }) {
     setTransactions(updated);
     await saveLocalData('transactions', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
+    if (user && isOnline && settings.syncEnabled && db) {
       try {
         await deleteDoc(doc(db, `users/${user.uid}/transactions`, id));
       } catch (error) {
         await addPendingSync({ type: 'delete', collection: 'transactions', id });
       }
-    } else if (user) {
+    } else if (user && db) {
       await addPendingSync({ type: 'delete', collection: 'transactions', id });
     }
   };
@@ -231,9 +230,13 @@ export function ExpenseProvider({ children }) {
     setBudgets(updated);
     await saveLocalData('budgets', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await setDoc(doc(db, `users/${user.uid}/budgets`, id), newBudget);
-    } else if (user) {
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await setDoc(doc(db, `users/${user.uid}/budgets`, id), newBudget);
+      } catch (error) {
+        await addPendingSync({ type: 'add', collection: 'budgets', id, data: newBudget });
+      }
+    } else if (user && db) {
       await addPendingSync({ type: 'add', collection: 'budgets', id, data: newBudget });
     }
 
@@ -245,8 +248,12 @@ export function ExpenseProvider({ children }) {
     setBudgets(updated);
     await saveLocalData('budgets', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await setDoc(doc(db, `users/${user.uid}/budgets`, id), updated.find(b => b.id === id), { merge: true });
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await setDoc(doc(db, `users/${user.uid}/budgets`, id), updated.find(b => b.id === id), { merge: true });
+      } catch (error) {
+        console.error('Error updating budget:', error);
+      }
     }
   };
 
@@ -255,8 +262,12 @@ export function ExpenseProvider({ children }) {
     setBudgets(updated);
     await saveLocalData('budgets', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await deleteDoc(doc(db, `users/${user.uid}/budgets`, id));
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await deleteDoc(doc(db, `users/${user.uid}/budgets`, id));
+      } catch (error) {
+        console.error('Error deleting budget:', error);
+      }
     }
   };
 
@@ -268,8 +279,12 @@ export function ExpenseProvider({ children }) {
     setGoals(updated);
     await saveLocalData('goals', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await setDoc(doc(db, `users/${user.uid}/goals`, id), newGoal);
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await setDoc(doc(db, `users/${user.uid}/goals`, id), newGoal);
+      } catch (error) {
+        console.error('Error adding goal:', error);
+      }
     }
 
     return newGoal;
@@ -280,8 +295,12 @@ export function ExpenseProvider({ children }) {
     setGoals(updated);
     await saveLocalData('goals', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await setDoc(doc(db, `users/${user.uid}/goals`, id), updated.find(g => g.id === id), { merge: true });
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await setDoc(doc(db, `users/${user.uid}/goals`, id), updated.find(g => g.id === id), { merge: true });
+      } catch (error) {
+        console.error('Error updating goal:', error);
+      }
     }
   };
 
@@ -290,8 +309,12 @@ export function ExpenseProvider({ children }) {
     setGoals(updated);
     await saveLocalData('goals', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await deleteDoc(doc(db, `users/${user.uid}/goals`, id));
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await deleteDoc(doc(db, `users/${user.uid}/goals`, id));
+      } catch (error) {
+        console.error('Error deleting goal:', error);
+      }
     }
   };
 
@@ -303,8 +326,12 @@ export function ExpenseProvider({ children }) {
     setRecurring(updated);
     await saveLocalData('recurring', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await setDoc(doc(db, `users/${user.uid}/recurring`, id), newRecurring);
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await setDoc(doc(db, `users/${user.uid}/recurring`, id), newRecurring);
+      } catch (error) {
+        console.error('Error adding recurring:', error);
+      }
     }
 
     return newRecurring;
@@ -315,8 +342,12 @@ export function ExpenseProvider({ children }) {
     setRecurring(updated);
     await saveLocalData('recurring', updated);
 
-    if (user && isOnline && settings.syncEnabled) {
-      await deleteDoc(doc(db, `users/${user.uid}/recurring`, id));
+    if (user && isOnline && settings.syncEnabled && db) {
+      try {
+        await deleteDoc(doc(db, `users/${user.uid}/recurring`, id));
+      } catch (error) {
+        console.error('Error deleting recurring:', error);
+      }
     }
   };
 
