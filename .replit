@@ -45,7 +45,7 @@ outputType = "console"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd DailyKharchaApp && npm start"
+args = "cd DailyKharchaApp && npx --yes expo start"
 
 [[ports]]
 localPort = 3001

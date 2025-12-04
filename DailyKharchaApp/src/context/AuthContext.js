@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signInWithGoogle = async (idToken) => {
-    if (!firebaseAvailable || !auth) {
+    if (!firebaseAvailable || !auth || !auth.GoogleAuthProvider) {
       return { success: false, error: 'Firebase not available' };
     }
     
