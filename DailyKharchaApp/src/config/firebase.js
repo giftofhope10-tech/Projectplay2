@@ -1,8 +1,6 @@
-import { initializeApp, getApps } from 'firebase/app';
-import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
-import { Platform } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import firebase from '@react-native-firebase/app';
+import auth from '@react-native-firebase/auth';
+import firestore from '@react-native-firebase/firestore';
 
 const firebaseConfig = {
   apiKey: "AIzaSyBkxplSWjlK16t6apO2RyMi3NZAztW6NLA",
@@ -13,40 +11,16 @@ const firebaseConfig = {
   appId: "1:507541610012:android:e443ed40a113f7713389d9"
 };
 
-let app;
-let auth;
-let db;
+let firebaseAvailable = true;
 
 try {
-  if (getApps().length === 0) {
-    app = initializeApp(firebaseConfig);
-  } else {
-    app = getApps()[0];
-  }
-
-  if (Platform.OS === 'web') {
-    auth = getAuth(app);
-    db = getFirestore(app);
-  } else {
-    try {
-      auth = initializeAuth(app, {
-        persistence: getReactNativePersistence(AsyncStorage)
-      });
-    } catch (error) {
-      if (error.code === 'auth/already-initialized') {
-        auth = getAuth(app);
-      } else {
-        console.error('Auth initialization error:', error);
-        auth = getAuth(app);
-      }
-    }
-    db = getFirestore(app);
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
   }
 } catch (error) {
-  console.error('Firebase initialization error:', error);
-  app = null;
-  auth = null;
-  db = null;
+  console.log('Firebase initialization handled by native config');
+  firebaseAvailable = firebase.apps.length > 0;
 }
 
-export { app, auth, db };
+export { auth, firestore, firebaseAvailable };
+export default firebase;

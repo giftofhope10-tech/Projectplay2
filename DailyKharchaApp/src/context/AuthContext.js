@@ -1,12 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { auth, db } from '../config/firebase';
-import { 
-  signInWithCredential,
-  GoogleAuthProvider,
-  signOut as firebaseSignOut,
-  onAuthStateChanged
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, firestore, firebaseAvailable } from '../config/firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const AuthContext = createContext();
@@ -19,23 +12,33 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
-  const [firebaseAvailable, setFirebaseAvailable] = useState(false);
+  const [isFirebaseAvailable, setIsFirebaseAvailable] = useState(firebaseAvailable);
 
   useEffect(() => {
-    if (!auth) {
-      console.log('Firebase auth not available, running in offline mode');
+    if (!firebaseAvailable) {
+      console.log('Firebase not available, running in offline mode');
       setLoading(false);
-      setFirebaseAvailable(false);
+      setIsFirebaseAvailable(false);
       return;
     }
 
-    setFirebaseAvailable(true);
+    setIsFirebaseAvailable(true);
     
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
       try {
-        if (firebaseUser && db) {
-          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-          const userData = userDoc.exists() ? userDoc.data() : {};
+        if (firebaseUser) {
+          let userData = {};
+          try {
+            const userDoc = await firestore()
+              .collection('users')
+              .doc(firebaseUser.uid)
+              .get();
+            if (userDoc.exists) {
+              userData = userDoc.data();
+            }
+          } catch (firestoreError) {
+            console.log('Could not fetch user data:', firestoreError);
+          }
           
           setUser({
             uid: firebaseUser.uid,
@@ -58,21 +61,28 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signInWithGoogle = async (idToken) => {
-    if (!auth || !db) {
+    if (!firebaseAvailable) {
       return { success: false, error: 'Firebase not available' };
     }
     
     try {
-      const credential = GoogleAuthProvider.credential(idToken);
-      const result = await signInWithCredential(auth, credential);
+      const googleCredential = auth.GoogleAuthProvider.credential(idToken);
+      const result = await auth().signInWithCredential(googleCredential);
       
-      await setDoc(doc(db, 'users', result.user.uid), {
-        email: result.user.email,
-        displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        lastLogin: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      }, { merge: true });
+      try {
+        await firestore()
+          .collection('users')
+          .doc(result.user.uid)
+          .set({
+            email: result.user.email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+            lastLogin: firestore.FieldValue.serverTimestamp(),
+            updatedAt: firestore.FieldValue.serverTimestamp()
+          }, { merge: true });
+      } catch (firestoreError) {
+        console.log('Could not save user data:', firestoreError);
+      }
 
       return { success: true, user: result.user };
     } catch (error) {
@@ -83,8 +93,8 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try {
-      if (auth) {
-        await firebaseSignOut(auth);
+      if (firebaseAvailable) {
+        await auth().signOut();
       }
       await AsyncStorage.removeItem('userSettings');
       setUser(null);
@@ -99,7 +109,7 @@ export function AuthProvider({ children }) {
     loading,
     isOnline,
     setIsOnline,
-    firebaseAvailable,
+    firebaseAvailable: isFirebaseAvailable,
     signInWithGoogle,
     signOut
   };

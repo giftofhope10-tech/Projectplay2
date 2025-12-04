@@ -14,7 +14,8 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.iftechstudio.ExpenseController"
+      "bundleIdentifier": "com.iftechstudio.ExpenseController",
+      "googleServicesFile": "./GoogleService-Info.plist"
     },
     "android": {
       "package": "com.iftechstudio.Expense_Controller",
@@ -36,6 +37,15 @@
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
+      "@react-native-firebase/app",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
       "expo-secure-store",
       "expo-local-authentication",
       [

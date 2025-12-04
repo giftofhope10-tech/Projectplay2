@@ -1,17 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { db } from '../config/firebase';
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  getDocs, 
-  deleteDoc, 
-  query, 
-  orderBy,
-  serverTimestamp,
-  writeBatch
-} from 'firebase/firestore';
+import { firestore, firebaseAvailable } from '../config/firebase';
 import { useAuth } from './AuthContext';
 import { useSettings } from './SettingsContext';
 import NetInfo from '@react-native-community/netinfo';
@@ -23,7 +12,7 @@ export function useExpense() {
 }
 
 export function ExpenseProvider({ children }) {
-  const { user, isOnline, firebaseAvailable } = useAuth();
+  const { user, isOnline, firebaseAvailable: authFirebaseAvailable } = useAuth();
   const { settings, updateLastSync } = useSettings();
   
   const [transactions, setTransactions] = useState([]);
@@ -34,25 +23,27 @@ export function ExpenseProvider({ children }) {
   const [syncing, setSyncing] = useState(false);
   const [pendingSync, setPendingSync] = useState([]);
 
+  const isDbAvailable = firebaseAvailable && authFirebaseAvailable;
+
   useEffect(() => {
     loadLocalData();
   }, []);
 
   useEffect(() => {
-    if (user && isOnline && settings.syncEnabled && firebaseAvailable && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       syncWithCloud();
     }
-  }, [user, isOnline, settings.syncEnabled, firebaseAvailable]);
+  }, [user, isOnline, settings.syncEnabled, isDbAvailable]);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
-      if (state.isConnected && pendingSync.length > 0 && user && firebaseAvailable && db) {
+      if (state.isConnected && pendingSync.length > 0 && user && isDbAvailable) {
         syncPendingChanges();
       }
     });
 
     return () => unsubscribe();
-  }, [pendingSync, user, firebaseAvailable]);
+  }, [pendingSync, user, isDbAvailable]);
 
   const loadLocalData = async () => {
     try {
@@ -91,19 +82,26 @@ export function ExpenseProvider({ children }) {
   };
 
   const syncPendingChanges = async () => {
-    if (!user || pendingSync.length === 0 || !db) return;
+    if (!user || pendingSync.length === 0 || !isDbAvailable) return;
 
     setSyncing(true);
     try {
-      const batch = writeBatch(db);
+      const batch = firestore().batch();
       
       for (const action of pendingSync) {
-        const docRef = doc(db, `users/${user.uid}/${action.collection}`, action.id);
+        const docRef = firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection(action.collection)
+          .doc(action.id);
         
         if (action.type === 'delete') {
           batch.delete(docRef);
         } else {
-          batch.set(docRef, { ...action.data, updatedAt: serverTimestamp() }, { merge: true });
+          batch.set(docRef, { 
+            ...action.data, 
+            updatedAt: firestore.FieldValue.serverTimestamp() 
+          }, { merge: true });
         }
       }
 
@@ -119,20 +117,17 @@ export function ExpenseProvider({ children }) {
   };
 
   const syncWithCloud = async () => {
-    if (!user || !db) return;
+    if (!user || !isDbAvailable) return;
 
     setSyncing(true);
     try {
-      const transactionsRef = collection(db, `users/${user.uid}/transactions`);
-      const budgetsRef = collection(db, `users/${user.uid}/budgets`);
-      const goalsRef = collection(db, `users/${user.uid}/goals`);
-      const recurringRef = collection(db, `users/${user.uid}/recurring`);
+      const userRef = firestore().collection('users').doc(user.uid);
 
       const [txnSnap, budgetSnap, goalSnap, recurringSnap] = await Promise.all([
-        getDocs(query(transactionsRef, orderBy('date', 'desc'))),
-        getDocs(budgetsRef),
-        getDocs(goalsRef),
-        getDocs(recurringRef)
+        userRef.collection('transactions').orderBy('date', 'desc').get(),
+        userRef.collection('budgets').get(),
+        userRef.collection('goals').get(),
+        userRef.collection('recurring').get()
       ]);
 
       const cloudTxns = txnSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -172,16 +167,21 @@ export function ExpenseProvider({ children }) {
     setTransactions(updated);
     await saveLocalData('transactions', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/transactions`, id), {
-          ...newTransaction,
-          createdAt: serverTimestamp()
-        });
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('transactions')
+          .doc(id)
+          .set({
+            ...newTransaction,
+            createdAt: firestore.FieldValue.serverTimestamp()
+          });
       } catch (error) {
         await addPendingSync({ type: 'add', collection: 'transactions', id, data: newTransaction });
       }
-    } else if (user && db) {
+    } else if (user && isDbAvailable) {
       await addPendingSync({ type: 'add', collection: 'transactions', id, data: newTransaction });
     }
 
@@ -195,13 +195,18 @@ export function ExpenseProvider({ children }) {
 
     const updatedTxn = updated.find(t => t.id === id);
     
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/transactions`, id), updatedTxn, { merge: true });
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('transactions')
+          .doc(id)
+          .set(updatedTxn, { merge: true });
       } catch (error) {
         await addPendingSync({ type: 'update', collection: 'transactions', id, data: updatedTxn });
       }
-    } else if (user && db) {
+    } else if (user && isDbAvailable) {
       await addPendingSync({ type: 'update', collection: 'transactions', id, data: updatedTxn });
     }
   };
@@ -211,13 +216,18 @@ export function ExpenseProvider({ children }) {
     setTransactions(updated);
     await saveLocalData('transactions', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await deleteDoc(doc(db, `users/${user.uid}/transactions`, id));
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('transactions')
+          .doc(id)
+          .delete();
       } catch (error) {
         await addPendingSync({ type: 'delete', collection: 'transactions', id });
       }
-    } else if (user && db) {
+    } else if (user && isDbAvailable) {
       await addPendingSync({ type: 'delete', collection: 'transactions', id });
     }
   };
@@ -230,13 +240,18 @@ export function ExpenseProvider({ children }) {
     setBudgets(updated);
     await saveLocalData('budgets', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/budgets`, id), newBudget);
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('budgets')
+          .doc(id)
+          .set(newBudget);
       } catch (error) {
         await addPendingSync({ type: 'add', collection: 'budgets', id, data: newBudget });
       }
-    } else if (user && db) {
+    } else if (user && isDbAvailable) {
       await addPendingSync({ type: 'add', collection: 'budgets', id, data: newBudget });
     }
 
@@ -248,9 +263,14 @@ export function ExpenseProvider({ children }) {
     setBudgets(updated);
     await saveLocalData('budgets', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/budgets`, id), updated.find(b => b.id === id), { merge: true });
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('budgets')
+          .doc(id)
+          .set(updated.find(b => b.id === id), { merge: true });
       } catch (error) {
         console.error('Error updating budget:', error);
       }
@@ -262,9 +282,14 @@ export function ExpenseProvider({ children }) {
     setBudgets(updated);
     await saveLocalData('budgets', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await deleteDoc(doc(db, `users/${user.uid}/budgets`, id));
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('budgets')
+          .doc(id)
+          .delete();
       } catch (error) {
         console.error('Error deleting budget:', error);
       }
@@ -279,9 +304,14 @@ export function ExpenseProvider({ children }) {
     setGoals(updated);
     await saveLocalData('goals', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/goals`, id), newGoal);
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('goals')
+          .doc(id)
+          .set(newGoal);
       } catch (error) {
         console.error('Error adding goal:', error);
       }
@@ -295,9 +325,14 @@ export function ExpenseProvider({ children }) {
     setGoals(updated);
     await saveLocalData('goals', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/goals`, id), updated.find(g => g.id === id), { merge: true });
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('goals')
+          .doc(id)
+          .set(updated.find(g => g.id === id), { merge: true });
       } catch (error) {
         console.error('Error updating goal:', error);
       }
@@ -309,9 +344,14 @@ export function ExpenseProvider({ children }) {
     setGoals(updated);
     await saveLocalData('goals', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await deleteDoc(doc(db, `users/${user.uid}/goals`, id));
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('goals')
+          .doc(id)
+          .delete();
       } catch (error) {
         console.error('Error deleting goal:', error);
       }
@@ -326,9 +366,14 @@ export function ExpenseProvider({ children }) {
     setRecurring(updated);
     await saveLocalData('recurring', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await setDoc(doc(db, `users/${user.uid}/recurring`, id), newRecurring);
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('recurring')
+          .doc(id)
+          .set(newRecurring);
       } catch (error) {
         console.error('Error adding recurring:', error);
       }
@@ -342,9 +387,14 @@ export function ExpenseProvider({ children }) {
     setRecurring(updated);
     await saveLocalData('recurring', updated);
 
-    if (user && isOnline && settings.syncEnabled && db) {
+    if (user && isOnline && settings.syncEnabled && isDbAvailable) {
       try {
-        await deleteDoc(doc(db, `users/${user.uid}/recurring`, id));
+        await firestore()
+          .collection('users')
+          .doc(user.uid)
+          .collection('recurring')
+          .doc(id)
+          .delete();
       } catch (error) {
         console.error('Error deleting recurring:', error);
       }
