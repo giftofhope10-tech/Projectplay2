@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import { 
   Home, 
   Receipt, 
@@ -14,6 +14,7 @@ import {
 } from 'lucide-react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import ErrorBoundary from './src/components/ErrorBoundary';
 import { AuthProvider, useAuth } from './src/context/AuthContext';
 import { SettingsProvider, useSettings } from './src/context/SettingsContext';
 import { ExpenseProvider } from './src/context/ExpenseContext';
@@ -29,6 +30,14 @@ import GoalsScreen from './src/screens/GoalsScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import PrivacyPolicyScreen from './src/screens/PrivacyPolicyScreen';
 import TermsOfServiceScreen from './src/screens/TermsOfServiceScreen';
+
+LogBox.ignoreLogs([
+  'Non-serializable values were found in the navigation state',
+  'Setting a timer',
+  'AsyncStorage has been extracted',
+  'Firebase',
+  'Require cycle'
+]);
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -153,15 +162,21 @@ function AppContent() {
     try {
       const seen = await AsyncStorage.getItem('hasSeenOnboarding');
       setHasSeenOnboarding(seen === 'true');
-    } catch {
+    } catch (error) {
+      console.log('Onboarding check error:', error);
       setHasSeenOnboarding(false);
     }
   };
 
   const handleSkip = async () => {
-    await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-    setShowLogin(false);
-    setHasSeenOnboarding(true);
+    try {
+      await AsyncStorage.setItem('hasSeenOnboarding', 'true');
+      setShowLogin(false);
+      setHasSeenOnboarding(true);
+    } catch (error) {
+      console.log('Skip error:', error);
+      setHasSeenOnboarding(true);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -208,7 +223,7 @@ function AppContent() {
 
 export default function App() {
   return (
-    <>
+    <ErrorBoundary>
       <StatusBar style="light" />
       <AuthProvider>
         <SettingsProvider>
@@ -217,7 +232,7 @@ export default function App() {
           </ExpenseProvider>
         </SettingsProvider>
       </AuthProvider>
-    </>
+    </ErrorBoundary>
   );
 }
 

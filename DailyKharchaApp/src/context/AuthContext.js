@@ -15,7 +15,7 @@ export function AuthProvider({ children }) {
   const [isFirebaseAvailable, setIsFirebaseAvailable] = useState(firebaseAvailable);
 
   useEffect(() => {
-    if (!firebaseAvailable) {
+    if (!firebaseAvailable || !auth) {
       console.log('Firebase not available, running in offline mode');
       setLoading(false);
       setIsFirebaseAvailable(false);
@@ -24,44 +24,57 @@ export function AuthProvider({ children }) {
 
     setIsFirebaseAvailable(true);
     
-    const unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
-      try {
-        if (firebaseUser) {
-          let userData = {};
-          try {
-            const userDoc = await firestore()
-              .collection('users')
-              .doc(firebaseUser.uid)
-              .get();
-            if (userDoc.exists) {
-              userData = userDoc.data();
+    let unsubscribe = () => {};
+    
+    try {
+      unsubscribe = auth().onAuthStateChanged(async (firebaseUser) => {
+        try {
+          if (firebaseUser) {
+            let userData = {};
+            try {
+              if (firestore) {
+                const userDoc = await firestore()
+                  .collection('users')
+                  .doc(firebaseUser.uid)
+                  .get();
+                if (userDoc.exists) {
+                  userData = userDoc.data();
+                }
+              }
+            } catch (firestoreError) {
+              console.log('Could not fetch user data:', firestoreError);
             }
-          } catch (firestoreError) {
-            console.log('Could not fetch user data:', firestoreError);
+            
+            setUser({
+              uid: firebaseUser.uid,
+              email: firebaseUser.email,
+              displayName: firebaseUser.displayName,
+              photoURL: firebaseUser.photoURL,
+              ...userData
+            });
+          } else {
+            setUser(null);
           }
-          
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            displayName: firebaseUser.displayName,
-            photoURL: firebaseUser.photoURL,
-            ...userData
-          });
-        } else {
+        } catch (error) {
+          console.error('Auth state change error:', error);
           setUser(null);
         }
-      } catch (error) {
-        console.error('Auth state change error:', error);
-        setUser(null);
-      }
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error('Auth subscription error:', error);
       setLoading(false);
-    });
+    }
 
-    return unsubscribe;
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, []);
 
   const signInWithGoogle = async (idToken) => {
-    if (!firebaseAvailable) {
+    if (!firebaseAvailable || !auth) {
       return { success: false, error: 'Firebase not available' };
     }
     
@@ -70,16 +83,18 @@ export function AuthProvider({ children }) {
       const result = await auth().signInWithCredential(googleCredential);
       
       try {
-        await firestore()
-          .collection('users')
-          .doc(result.user.uid)
-          .set({
-            email: result.user.email,
-            displayName: result.user.displayName,
-            photoURL: result.user.photoURL,
-            lastLogin: firestore.FieldValue.serverTimestamp(),
-            updatedAt: firestore.FieldValue.serverTimestamp()
-          }, { merge: true });
+        if (firestore) {
+          await firestore()
+            .collection('users')
+            .doc(result.user.uid)
+            .set({
+              email: result.user.email,
+              displayName: result.user.displayName,
+              photoURL: result.user.photoURL,
+              lastLogin: firestore.FieldValue.serverTimestamp(),
+              updatedAt: firestore.FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
       } catch (firestoreError) {
         console.log('Could not save user data:', firestoreError);
       }
@@ -93,7 +108,7 @@ export function AuthProvider({ children }) {
 
   const signOut = async () => {
     try {
-      if (firebaseAvailable) {
+      if (firebaseAvailable && auth) {
         await auth().signOut();
       }
       await AsyncStorage.removeItem('userSettings');

@@ -23,7 +23,7 @@ export function ExpenseProvider({ children }) {
   const [syncing, setSyncing] = useState(false);
   const [pendingSync, setPendingSync] = useState([]);
 
-  const isDbAvailable = firebaseAvailable && authFirebaseAvailable;
+  const isDbAvailable = firebaseAvailable && authFirebaseAvailable && firestore;
 
   useEffect(() => {
     loadLocalData();
@@ -36,13 +36,23 @@ export function ExpenseProvider({ children }) {
   }, [user, isOnline, settings.syncEnabled, isDbAvailable]);
 
   useEffect(() => {
-    const unsubscribe = NetInfo.addEventListener(state => {
-      if (state.isConnected && pendingSync.length > 0 && user && isDbAvailable) {
-        syncPendingChanges();
-      }
-    });
+    let unsubscribe = () => {};
+    
+    try {
+      unsubscribe = NetInfo.addEventListener(state => {
+        if (state.isConnected && pendingSync.length > 0 && user && isDbAvailable) {
+          syncPendingChanges();
+        }
+      });
+    } catch (error) {
+      console.log('NetInfo subscription error:', error);
+    }
 
-    return () => unsubscribe();
+    return () => {
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, [pendingSync, user, isDbAvailable]);
 
   const loadLocalData = async () => {
